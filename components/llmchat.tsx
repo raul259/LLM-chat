@@ -99,8 +99,8 @@ export default function LLMChat() {
           prev.map((m) => (m.id === assistantMsg.id ? { ...m, content: m.content + value } : m))
         );
       }
-    } catch (e: any) {
-      if (e?.name !== "AbortError") {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== "AbortError") {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsg.id
