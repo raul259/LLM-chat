@@ -62,26 +62,36 @@ export async function POST(req: Request) {
     }
   }
 
-  const stream = await openai.responses.create({
-    model: model ?? "gpt-4o-mini",
-    stream: true,
-    input: messages.map((m) => ({ role: m.role, content: m.content })),
-  });
+  try {
+    const stream = await openai.chat.completions.create({
+      model: model ?? "gpt-4o-mini",
+      stream: true,
+      messages: messages.map((m) => ({ 
+        role: m.role === "developer" ? "system" : m.role, 
+        content: m.content 
+      })),
+    });
 
-  const body = new ReadableStream<string>({
-    async start(controller) {
-      for await (const event of stream) {
-        if (event.type === "response.output_text.delta") controller.enqueue(event.delta ?? "");
-        if (event.type === "response.completed") break;
-      }
-      controller.close();
-    },
-  }).pipeThrough(new TextEncoderStream());
+    const body = new ReadableStream<string>({
+      async start(controller) {
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || "";
+          if (content) {
+            controller.enqueue(content);
+          }
+        }
+        controller.close();
+      },
+    }).pipeThrough(new TextEncoderStream());
 
-  return new Response(body, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
+    return new Response(body, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("OpenAI API Error:", error);
+    return new Response("Error al procesar la solicitud", { status: 500 });
+  }
 }
