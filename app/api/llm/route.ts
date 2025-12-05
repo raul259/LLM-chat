@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       model: model ?? "gpt-4o-mini",
       stream: true,
       messages: messages.map((m) => ({ 
-        role: m.role === "developer" ? "system" : m.role, 
+        role: (m.role === "developer" ? "system" : m.role) as "system" | "user" | "assistant",
         content: m.content 
       })),
     });
