@@ -4,6 +4,10 @@ import { openai } from "@/lib/openai";
 type ChatMsg = { role: "user" | "assistant" | "developer"; content: string };
 
 export async function POST(req: Request) {
+  if (!process.env.OPENAI_API_KEY) {
+    return new Response("Missing OPENAI_API_KEY", { status: 500 });
+  }
+
   const { messages, model } = (await req.json()) as {
     messages: ChatMsg[];
     model?: string;
