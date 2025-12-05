@@ -84,8 +84,14 @@ export default function LLMChat() {
         body: JSON.stringify({ model, messages: snapshot }),
       });
 
-      if (!res.ok || !res.body) {
-        throw new Error("Request failed");
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("API Error:", res.status, errorText);
+        throw new Error(`API Error: ${res.status} - ${errorText}`);
+      }
+
+      if (!res.body) {
+        throw new Error("No response body");
       }
 
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -101,10 +107,15 @@ export default function LLMChat() {
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== "AbortError") {
+        console.error("Chat error:", e);
+        const errorMsg = e.message.includes("API Error") 
+          ? `Error: ${e.message}` 
+          : "Ups… falló la respuesta. Revisa la ruta /api/llm y tu API key.";
+        
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsg.id
-              ? { ...m, content: "Ups… falló la respuesta. Revisa la ruta /api/llm y tu API key." }
+              ? { ...m, content: errorMsg }
               : m
           )
         );
